@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,8 +35,15 @@ public class StatementParserService {
 
     private final CategoryConfigService categoryConfigService;
 
-    // Matches dates like 1/7, 01/07, 23/7/2025, 23-07
-    private static final Pattern DATE_HEADER_PATTERN = Pattern.compile("^\\s*(\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?)\\s*$");
+    // Matches dates: D/M, DD/MM, D/M/YY, D/M/YYYY using / or -
+    // group(1) = day, group(2) = month, group(3) = optional year
+    private static final Pattern DATE_HEADER_PATTERN = 
+            Pattern.compile("^\\s*(\\d{1,2})[/-](\\d{1,2})(?:[/-](\\d{2}|\\d{4}))?\\s*$");
+
+    private static final Pattern INLINE_DATE_PATTERN = 
+            Pattern.compile("^(.*?)\\s+(\\d{1,2}[/-]\\d{1,2}(?:[/-](?:\\d{2}|\\d{4}))?)$");
+
+    private static final DateTimeFormatter DISPLAY_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public StatementParserService(CategoryConfigService categoryConfigService) {
         this.categoryConfigService = categoryConfigService;
@@ -67,35 +77,50 @@ public class StatementParserService {
 
     public List<ExpenseItem> parseToEntries(String rawText) {
         List<ExpenseItem> items = new ArrayList<>();
-        String currentDate = "Unspecified Date";
+        String currentDate = null;
 
         try (BufferedReader reader = new BufferedReader(new StringReader(rawText))) {
             String line;
+            int lineNumber = 0;
+
             while ((line = reader.readLine()) != null) {
+                lineNumber++;
                 line = line.replace('\u00A0', ' ')
                            .replace('—', '-')
                            .replace('–', '-')
                            .replace('−', '-')
                            .trim();
-                
+
                 if (line.isEmpty()) continue;
 
                 // Handle inline run-on dates like "Curd - 10 1/6"
-                Matcher inlineDateMatcher = Pattern.compile("^(.*?)\\s+(\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?)$").matcher(line);
+                Matcher inlineDateMatcher = INLINE_DATE_PATTERN.matcher(line);
                 String nextDate = null;
                 if (inlineDateMatcher.matches() && inlineDateMatcher.group(1).contains("-")) {
                     line = inlineDateMatcher.group(1).trim();
-                    nextDate = inlineDateMatcher.group(2).trim();
+                    nextDate = normalizeAndValidateDate(inlineDateMatcher.group(2).trim(), lineNumber);
                 }
 
+                // Check if the current line is a date header (e.g. 1/9, 2-9, 1/9/2026)
                 Matcher dateMatcher = DATE_HEADER_PATTERN.matcher(line);
                 if (dateMatcher.matches()) {
-                    currentDate = dateMatcher.group(1);
+                    currentDate = normalizeAndValidateDate(line, lineNumber);
                     continue;
                 }
 
                 if (line.contains("-")) {
+                    if (currentDate == null) {
+                        throw new IllegalArgumentException(
+                            "Line " + lineNumber + ": Expense entry '" + line + 
+                            "' is missing a preceding date/month header (e.g. '1/9')."
+                        );
+                    }
                     parseDelimitedLine(line, currentDate, items);
+                } else {
+                    // Line neither matches a valid date header nor contains an expense delimiter
+                    throw new IllegalArgumentException(
+                        "Line " + lineNumber + ": Unrecognized format or missing date header -> '" + line + "'"
+                    );
                 }
 
                 if (nextDate != null) {
@@ -103,10 +128,40 @@ public class StatementParserService {
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException("Error parsing content", e);
+            throw new RuntimeException("Error reading content", e);
         }
 
         return items;
+    }
+
+    private String normalizeAndValidateDate(String rawDate, int lineNumber) {
+        Matcher matcher = DATE_HEADER_PATTERN.matcher(rawDate.trim());
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException(
+                "Line " + lineNumber + ": Invalid date format '" + rawDate + "'. Expected format: D/M or D/M/YYYY."
+            );
+        }
+
+        int day = Integer.parseInt(matcher.group(1));
+        int month = Integer.parseInt(matcher.group(2));
+        int currentYear = LocalDate.now().getYear();
+        int year;
+
+        if (matcher.group(3) != null) {
+            String rawYear = matcher.group(3);
+            year = (rawYear.length() == 2) ? 2000 + Integer.parseInt(rawYear) : Integer.parseInt(rawYear);
+        } else {
+            year = currentYear;
+        }
+
+        try {
+            LocalDate parsedDate = LocalDate.of(year, month, day);
+            return parsedDate.format(DISPLAY_DATE_FORMATTER);
+        } catch (DateTimeException e) {
+            throw new IllegalArgumentException(
+                "Line " + lineNumber + ": Invalid calendar date '" + rawDate + "'. " + e.getMessage()
+            );
+        }
     }
 
     private void parseDelimitedLine(String line, String currentDate, List<ExpenseItem> items) {
@@ -141,6 +196,7 @@ public class StatementParserService {
             items.add(new ExpenseItem(currentDate, desc, amount, category));
         }
     }
+
     private BigDecimal parseExpressionOrNumber(String text) {
         try {
             if (text.contains("+")) {
@@ -163,7 +219,7 @@ public class StatementParserService {
     }
 
     // =========================================================================
-    // Original Flow Aggregators
+    // Aggregators & Reports
     // =========================================================================
 
     public StatementSummaryResponse processFile(MultipartFile file) throws IOException {
@@ -212,10 +268,6 @@ public class StatementParserService {
         );
     }
 
-    // =========================================================================
-    // Granular APIs (API 1 & API 3 Helpers)
-    // =========================================================================
-
     public OverallSummaryResponse toOverallSummary(List<ExpenseItem> items) {
         BigDecimal grandTotal = BigDecimal.ZERO;
         BigDecimal totalExpenses = BigDecimal.ZERO;
@@ -262,7 +314,7 @@ public class StatementParserService {
                 .sorted((a, b) -> b.getTotalAmount().compareTo(a.getTotalAmount()))
                 .collect(Collectors.toList());
     }
-    
+
     public List<CategorySummaryOnlyResponse> getCategoryTotalsSummary(List<ExpenseItem> items) {
         Map<String, BigDecimal> categorySums = new HashMap<>();
         Map<String, Integer> categoryCounts = new HashMap<>();
@@ -281,7 +333,7 @@ public class StatementParserService {
                 .sorted((a, b) -> b.getTotalAmount().compareTo(a.getTotalAmount()))
                 .collect(Collectors.toList());
     }
-    
+
     public ComprehensiveExpenseReport buildComprehensiveReport(List<ExpenseItem> items) {
         OverallSummaryResponse summary = toOverallSummary(items);
         List<CategoryDetailResponse> categories = toCategoryDetails(items);

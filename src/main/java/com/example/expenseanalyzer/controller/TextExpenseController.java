@@ -7,11 +7,13 @@ import com.example.expenseanalyzer.model.OverallSummaryResponse;
 import com.example.expenseanalyzer.service.StatementParserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/expenses/text")
@@ -22,6 +24,16 @@ public class TextExpenseController {
 
     public TextExpenseController(StatementParserService parserService) {
         this.parserService = parserService;
+    }
+
+    // Catches IllegalArgumentException for all endpoints in this controller
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleParsingError(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+            "status", 400,
+            "error", "Invalid Input Format",
+            "message", ex.getMessage()
+        ));
     }
 
     @Operation(summary = "Get overall summary from raw text")
