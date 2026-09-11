@@ -1,0 +1,48 @@
+{
+  "Groceries & Essentials": [
+    "ZEPTO", "BIG BASKET", "BIGBASKET", "JIOMART", "JIO MART", "BLINKIT",
+    "KPN", "DMART", "RELIANCE", "SMART", "VEGETABLE", "VEGETABLES",
+    "VEGGIES", "FRUITS", "MANGOES", "EGGS", "MILK", "CURD", "DRYFRUITS",
+    "COCONUT WATER", "COCONUT", "CORN", "GROCERIES", "NOW"
+  ],
+  "Household Furniture & Appliances": [
+    "MATTERS", "MATTRESS", "PURIFIER", "BLENDER", "FANS+CHAIR", "GEYSER", "WASHING MACHINE"
+  ],
+  "Household Maintenance & Services": [
+    "DIPPERS", "DIAPERS", "DEEP CLEANING", "PLUMBER", "DOOR REPAIR",
+    "SCOOTY VELDING", "BIKE REPAIR", "PHONE REPAIR", "THREAD", "THREADS",
+    "PARCEL", "WATER", "WATERBOTTLE", "GLASS", "PLANT", "PACKING", "THINGS TO HOME"
+  ],
+  "Entertainment & Outings": [
+    "MOVIE", "POPCORN", "GO KARTING", "STATUE OF EQUALITY", "BIRTHDAY CELEBRATION"
+  ],
+  "Travel & Commute": [
+    "AUTO", "RAPIDO", "CAB", "CABS", "UBER", "BUS", "METRO", "TRAIN",
+    "TICKETS", "TICKET", "PETROL", "PARKING", "AIR", "BIKE", "TRAVEL"
+  ],
+  "Shopping & E-Commerce": [
+    "FLIPKART", "AMAZON", "MEESHO", "MESHO", "DECATHLON", "SHOPPING", "GIFT CARD"
+  ],
+  "Food & Dining": [
+    "SNACKS", "LUNCH", "DINNER", "ROTI", "TEA", "JUICE", "TIFFIN", "PIZZA",
+    "SUBWAY", "RESTAURANT", "FOOD", "KUNAFA", "BADAM MILK", "BUN", "CHAPATI",
+    "SANTHOSH DABA", "CHILLS", "PANI PURI", "PANIPURI", "CHIPS", "SODA",
+    "ZOMOTO", "ZOMATO", "KANCHI", "MNGALU", "PAN"
+  ],
+  "Medical & Healthcare": [
+    "DOCTOR", "MEDICINE", "MEDICINES", "MEDICALS", "TEST", "TABLETS", "RAJA TEST", "APOLLO"
+  ],
+  "Utilities & Bills": [
+    "AIRTEL", "POWER BILL", "ELECTRIC BILL", "WATER BILL", "WIFI", "MINUTES",
+    "MINTUNES", "DUSTBIN", "DISTURB CHARGES", "WASTE BILL", "GAS"
+  ],
+  "Government & Documentation": [
+    "PASSPORT PHOTO", "AADHAAR", "AADHAR", "XEROX"
+  ],
+  "Investments": [
+    "MUTUAL FUND", "SIP", "ZERODHA", "GROWW", "NPS", "PPF", "SECURITIES", "CHITTI", "GOLD CHITTI", "CHIT"
+  ],
+  "Religious & Donations": [
+    "DONATION", "ABHISHAKAM", "POOJA", "GANESH IDOL", "AMMAVARI KADIYALU", "FLOWERS", "RAKHI", "TEMPLE", "SHIRIDI"
+  ]
+}
